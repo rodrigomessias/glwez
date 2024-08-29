@@ -182,12 +182,12 @@ config.keys = {
   -- Panes
   {
     key = "Enter",
-    mods = "CTRL|SHIFT|ALT",
+    mods = "CTRL|SHIFT",
     action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
   },
   {
     key = "Enter",
-    mods = "CTRL|SHIFT",
+    mods = "CTRL|SHIFT|ALT",
     action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),
   },
   {
@@ -301,6 +301,16 @@ config.keys = {
     action = wezterm.action.ActivateTabRelative(-1),
   },
   {
+    key = "Delete",
+    mods = "CTRL",
+    action = wezterm.action.ActivateTabRelative(1),
+  },
+  {
+    key = "Delete",
+    mods = "CTRL|SHIFT",
+    action = wezterm.action.ActivateTabRelative(-1),
+  },
+  {
     key = "1",
     mods = "CTRL|SHIFT",
     action = wezterm.action.ActivateTab(0),
@@ -345,11 +355,46 @@ config.keys = {
     mods = "CTRL|SHIFT",
     action = wezterm.action.ActivateTab(8),
   },
-  -- Window
+  -- Workspaces
   {
-    key = "n",
+    key = "a",
     mods = "CTRL|SHIFT",
-    action = wezterm.action.SwitchToWorkspace
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'default',
+    }
+  },
+  {
+    key = 's',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'glvim',
+      spawn = {
+        args = { 'nvim' },
+        cwd = '/home/messi/dev/glvim'
+      },
+    },
+  },
+  {
+    key = 'd',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'glvsome',
+      spawn = {
+        args = { 'nvim' },
+        cwd = '/home/messi/dev/glvsome'
+      },
+    },
+  },
+  {
+    key = 'e',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'glwez',
+      spawn = {
+        args = { 'nvim' },
+        cwd = '/home/messi/dev/glwez'
+      },
+    },
   },
   -- Search
   {
