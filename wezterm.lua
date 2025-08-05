@@ -1,9 +1,154 @@
 local wezterm = require("wezterm")
+local mux = wezterm.mux
 
 local config = wezterm.config_builder()
 
 
+-- EVENTS
+--
+--
+-- wezterm.on('gui-startup', function(cmd)
+--   local args = {}
+--   if cmd then
+--     args = cmd.args
+--   end
+--
+--   local glvim2 = wezterm.home_dir .. '/dev/glvim2'
+--   local glvim = wezterm.home_dir .. '/dev/glvim'
+--
+--   local tab, build_pane, window = mux.spawn_window {
+--     workspace = 'glvim2',
+--     cwd = glvim2,
+--     -- args = {'glvim2'}
+--   }
+--   local editor_pane = build_pane:split {
+--     direction = 'Top',
+--     size = 0.5,
+--     cwd = glvim,
+--     -- args = {'glvim'}
+--   }
+--
+--
+-- end)
 
+wezterm.on('spawn-glvim2', function(cmd)
+
+  -- Set a workspace for coding on a current project
+  -- Top pane is for the editor, bottom pane is for the build tool
+  local glvim2 = wezterm.home_dir .. '/dev/glvim2'
+  local glvim = wezterm.home_dir .. '/dev/glvim'
+  local tab, build_pane, window = mux.spawn_window {
+    workspace = 'glvim2',
+    cwd = glvim2,
+    args = {'glvim2'}
+  }
+  local editor_pane = build_pane:split {
+    direction = 'Top',
+    size = 0.5,
+    cwd = glvim,
+    args = {'glvim'}
+  }
+  -- may as well kick off a build in that pane
+
+  -- A workspace for interacting with a local machine that
+  -- runs some docker containers for home automation
+  local tab, pane, window = mux.spawn_window {
+    workspace = 'automation',
+    args = { 'ssh', 'vault' },
+  }
+
+  -- We want to startup in the coding workspace
+  mux.set_active_workspace 'coding'
+
+
+end)
+
+
+
+
+
+
+
+-- This function returns the suggested title for a tab.
+-- It prefers the title that was set via `tab:set_title()`
+-- or `wezterm cli set-tab-title`, but falls back to the
+-- title of the active pane in that tab.
+local function tab_title(tab_info)
+  local title = tab_info.tab_title
+  -- if the tab title is explicitly set, take that
+  if title and #title > 0 then
+    return title
+  end
+  -- Otherwise, use the title from the active pane
+  -- in that tab
+  local tabtitle =  tab_info.active_pane.title
+  if tabtitle == "~" then
+    tabtitle = " ~ "
+  end
+  tabtitle = " " .. tabtitle .. " "
+  return tabtitle
+end
+
+wezterm.on(
+  'format-tab-title',
+  function(tab, tabs, panes, config, hover, max_width)
+    local edge_background = '#0b0022'
+    local active_background = "#393939"
+    local active_foreground = "#aaaaaa"
+
+    local inactive_background = "#202126"
+    local inactive_foreground = "#6d6d6d"
+
+    local background = inactive_background
+    local foreground = inactive_foreground
+
+    if tab.is_active then
+      background = active_background
+      foreground = active_foreground
+    elseif hover then
+      background = inactive_background
+      foreground = active_foreground
+    end
+
+
+    local title = tab_title(tab)
+
+    -- ensure that the titles fit in the available space,
+    -- and that we have room for the edges.
+    title = wezterm.truncate_right(title, max_width - 2)
+
+    if tab.tab_id == 0 then
+      return {
+        { Background = { Color = background } },
+        { Foreground = { Color = background } },
+        { Text = SOLID_LEFT_ARROW },
+        { Background = { Color = background } },
+        { Foreground = { Color = foreground } },
+        { Text = title },
+        { Background = { Color = inactive_background } },
+        { Foreground = { Color = background } },
+        { Text = SOLID_RIGHT_ARROW },
+      }
+    end
+
+    return {
+      { Background = { Color = inactive_background } },
+      { Foreground = { Color = background } },
+      { Text = SOLID_LEFT_ARROW },
+      { Background = { Color = background } },
+      { Foreground = { Color = foreground } },
+      { Text = title },
+      { Background = { Color = inactive_background } },
+      { Foreground = { Color = background } },
+      { Text = SOLID_RIGHT_ARROW },
+    }
+  end
+)
+
+
+--- CONFIG
+---
+---
 --------* UI *--------
 
 config.font = wezterm.font 'FiraCode Nerd Font Ret'
@@ -83,88 +228,12 @@ local SOLID_LEFT_ARROW = wezterm.nerdfonts.ple_lower_right_triangle
 -- The filled in variant of the > symbol
 local SOLID_RIGHT_ARROW = wezterm.nerdfonts.ple_upper_left_triangle
 
--- This function returns the suggested title for a tab.
--- It prefers the title that was set via `tab:set_title()`
--- or `wezterm cli set-tab-title`, but falls back to the
--- title of the active pane in that tab.
-local function tab_title(tab_info)
-  local title = tab_info.tab_title
-  -- if the tab title is explicitly set, take that
-  if title and #title > 0 then
-    return title
-  end
-  -- Otherwise, use the title from the active pane
-  -- in that tab
-  local tabtitle =  tab_info.active_pane.title
-  if tabtitle == "~" then
-    tabtitle = " ~ "
-  end
-  tabtitle = " " .. tabtitle .. " "
-  return tabtitle
-end
-
-wezterm.on(
-  'format-tab-title',
-  function(tab, tabs, panes, config, hover, max_width)
-    local edge_background = '#0b0022'
-    local active_background = "#393939"
-    local active_foreground = "#aaaaaa"
-
-    local inactive_background = "#202126"
-    local inactive_foreground = "#6d6d6d"
-
-    local background = inactive_background
-    local foreground = inactive_foreground
-
-    if tab.is_active then
-      background = active_background
-      foreground = active_foreground
-    elseif hover then
-      background = inactive_background
-      foreground = active_foreground
-    end
-
-
-    local title = tab_title(tab)
-
-    -- ensure that the titles fit in the available space,
-    -- and that we have room for the edges.
-    title = wezterm.truncate_right(title, max_width - 2)
-
-    if tab.tab_id == 0 then
-      return {
-        { Background = { Color = background } },
-        { Foreground = { Color = background } },
-        { Text = SOLID_LEFT_ARROW },
-        { Background = { Color = background } },
-        { Foreground = { Color = foreground } },
-        { Text = title },
-        { Background = { Color = inactive_background } },
-        { Foreground = { Color = background } },
-        { Text = SOLID_RIGHT_ARROW },
-      }
-    end
-
-    return {
-      { Background = { Color = inactive_background } },
-      { Foreground = { Color = background } },
-      { Text = SOLID_LEFT_ARROW },
-      { Background = { Color = background } },
-      { Foreground = { Color = foreground } },
-      { Text = title },
-      { Background = { Color = inactive_background } },
-      { Foreground = { Color = background } },
-      { Text = SOLID_RIGHT_ARROW },
-    }
-  end
-)
-
 
 -- Tabs
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = true
-config.tab_max_width = 20
+config.tab_max_width = 27
 
 -- Alert bell
 config.audible_bell = "Disabled"
@@ -182,12 +251,12 @@ config.keys = {
   -- Panes
   {
     key = "Enter",
-    mods = "CTRL|SHIFT",
+    mods = "CTRL|SHIFT|ALT",
     action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
   },
   {
     key = "Enter",
-    mods = "CTRL|SHIFT|ALT",
+    mods = "CTRL|SHIFT",
     action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),
   },
   {
@@ -359,42 +428,46 @@ config.keys = {
   {
     key = "a",
     mods = "CTRL|SHIFT",
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'default',
-    }
+    action = wezterm.action.SendString 'glvim\n'
+    -- action = wezterm.action.SwitchToWorkspace {
+    --   name = 'default',
+    -- }
   },
   {
     key = 's',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'glvim',
-      spawn = {
-        args = { 'nvim' },
-        cwd = '/home/messi/dev/glvim'
-      },
-    },
+    action = wezterm.action.SendString 'glvim2\n'
+    -- action = wezterm.action.SwitchToWorkspace {
+    --   name = 'glvim2',
+    --   spawn = {
+    --     args = { 'nvim' },
+    --     cwd = '/home/messi/dev/glvim2'
+    --   },
+    -- },
   },
   {
     key = 'd',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'glvsome',
-      spawn = {
-        args = { 'nvim' },
-        cwd = '/home/messi/dev/glvsome'
-      },
-    },
+    action = wezterm.action.SendString 'glvsome\n'
+    -- action = wezterm.action.SwitchToWorkspace {
+    --   name = 'glvsome',
+    --   spawn = {
+    --     args = { 'nvim' },
+    --     cwd = '/home/messi/dev/glvsome'
+    --   },
+    -- },
   },
   {
     key = 'e',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'glwez',
-      spawn = {
-        args = { 'nvim' },
-        cwd = '/home/messi/dev/glwez'
-      },
-    },
+    action = wezterm.action.SendString 'glwez\n'
+    -- action = wezterm.action.SwitchToWorkspace {
+    --   name = 'glwez',
+    --   spawn = {
+    --     args = { 'nvim' },
+    --     cwd = '/home/messi/dev/glwez'
+    --   },
+    -- },
   },
   -- Search
   {
